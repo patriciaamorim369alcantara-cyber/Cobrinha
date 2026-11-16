@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cobrinha</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#101a15">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#eef3ea;--fg:#1b2a22;--card:#fff;--line:#cfd9c8;--ac:#1f7a4d;--acfg:#fff;--bad:#b3392f;--mut:#5d6f64;--cv:#dfe9d6;--sn:#1f7a4d;--fd:#c2492f}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101a15;--fg:#e4eee6;--card:#182720;--line:#2b4036;--ac:#5fd08f;--acfg:#06210f;--bad:#ff8a7d;--mut:#98ad9f;--cv:#0c1410;--sn:#5fd08f;--fd:#ff9b6b}}
+:root[data-theme="dark"]{--bg:#101a15;--fg:#e4eee6;--card:#182720;--line:#2b4036;--ac:#5fd08f;--acfg:#06210f;--bad:#ff8a7d;--mut:#98ad9f;--cv:#0c1410;--sn:#5fd08f;--fd:#ff9b6b}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 "Trebuchet MS",system-ui,sans-serif;min-height:100vh}
+main{max-width:520px;margin:0 auto;padding:16px}
+h1{font-size:1.6rem;margin:8px 0;user-select:none;-webkit-user-select:none;cursor:default}
+button,input,select{font:inherit;color:inherit}
+button{background:var(--ac);color:var(--acfg);border:0;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer}
+button.ghost{background:transparent;color:var(--fg);border:1px solid var(--line)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--ac);outline-offset:2px}
+input,select{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px;width:100%}
+.hide{display:none!important}
+#game{text-align:center}
+canvas{width:100%;max-width:340px;aspect-ratio:1;background:var(--cv);border:2px solid var(--line);border-radius:12px;touch-action:none}
+.pad{display:grid;grid-template-columns:repeat(3,64px);gap:8px;justify-content:center;margin:12px 0}
+.pad button{height:56px;font-size:1.3rem}
+.sc{display:flex;justify-content:space-between;max-width:340px;margin:0 auto 8px;color:var(--mut)}
+dialog{border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--fg);max-width:300px;width:90%}
+dialog::backdrop{background:rgba(0,0,0,.5)}
+.tabs{display:flex;gap:6px;margin:12px 0}
+.tabs button{flex:1;background:transparent;color:var(--fg);border:1px solid var(--line)}
+.tabs button.on{background:var(--ac);color:var(--acfg);border-color:var(--ac)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+.row{display:flex;gap:8px;margin-bottom:8px}.row>*{flex:1}
+.sum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
+.sum b{display:block;font-size:1.05rem}.sum span{color:var(--mut);font-size:.8rem}
+.in{color:var(--ac)}.out{color:var(--bad)}
+.it{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}
+.it small{color:var(--mut);display:block}
+.it button{padding:4px 9px;background:transparent;color:var(--bad);border:1px solid var(--line)}
+.bar{height:8px;border-radius:4px;background:var(--ac);margin-top:3px}.bar.o{background:var(--bad)}
+.tbl{width:100%;border-collapse:collapse}.tbl td{padding:6px 0;border-bottom:1px solid var(--line)}.tbl td:last-child{text-align:right}
+.mut{color:var(--mut);font-size:.9rem}
+@media print{body{background:#fff;color:#000}.noprint{display:none!important}.card{border:1px solid #999}.in,.out{color:#000}}
+</style>
+</head>
+<body>
+<main>
+
+<section id="game">
+  <h1 id="title">Cobrinha</h1>
+  <div class="sc"><span>Pontos: <b id="pts">0</b></span><span>Recorde: <b id="rec">0</b></span></div>
+  <canvas id="cv" width="320" height="320" aria-label="Jogo da cobrinha"></canvas>
+  <div class="pad">
+    <span></span><button data-d="u" aria-label="Cima">▲</button><span></span>
+    <button data-d="l" aria-label="Esquerda">◀</button><button id="pl" aria-label="Jogar">▶</button><button data-d="r" aria-label="Direita">▶</button>
+    <span></span><button data-d="d" aria-label="Baixo">▼</button><span></span>
+  </div>
+  <p class="mut">Use as setas, deslize na tela ou toque nos botões.</p>
+</section>
+
+<dialog id="dlg">
+  <form method="dialog" onsubmit="return false" style="margin:0">
+    <p style="margin-top:0"><b>Código de acesso</b></p>
+    <input id="pin" type="password" inputmode="numeric" autocomplete="off" maxlength="8" aria-label="Código">
+    <div class="row" style="margin:10px 0 0"><button type="button" class="ghost" id="pc">Cancelar</button><button type="button" id="po">Entrar</button></div>
+  </form>
+</dialog>
+
+<section id="book" class="hide">
+  <div class="row noprint" style="align-items:center"><h1 style="flex:2">Livro caixa</h1><button class="ghost" id="exit">Sair</button></div>
+  <div class="tabs noprint" role="tablist">
+    <button class="on" data-t="t1">Lançamentos</button><button data-t="t2">Relatório</button><button data-t="t3">Ajustes</button>
+  </div>
+
+  <div id="t1">
+    <div class="card"><div class="sum"><div><b class="in" id="sIn">0</b><span>Entradas</span></div><div><b class="out" id="sOut">0</b><span>Saídas</span></div><div><b id="sBal">0</b><span>Saldo</span></div></div></div>
+    <div class="card">
+      <div class="row"><select id="tp"><option value="in">Entrada</option><option value="out">Saída</option></select><input id="dt" type="date" aria-label="Data"></div>
+      <div class="row"><input id="ds" placeholder="Descrição" aria-label="Descrição"></div>
+      <div class="row"><input id="ct" placeholder="Categoria (ex.: Vendas)" aria-label="Categoria" list="cts"><input id="vl" type="number" inputmode="decimal" step="0.01" min="0" placeholder="Valor" aria-label="Valor"></div>
+      <datalist id="cts"></datalist>
+      <button id="add" style="width:100%">Salvar lançamento</button>
+      <p class="mut hide" id="err" style="color:var(--bad);margin:8px 0 0"></p>
+    </div>
+    <div class="card" id="list"></div>
+  </div>
+
+  <div id="t2" class="hide">
+    <div class="card noprint">
+      <div class="row"><select id="rp"><option value="m">Um mês</option><option value="a">Todo o período</option></select><input id="rm" type="month" aria-label="Mês"></div>
+      <div class="row"><button id="print">Imprimir / salvar PDF</button><button class="ghost" id="copy">Copiar texto</button></div>
+      <p class="mut hide" id="cmsg" style="margin:0"></p>
+    </div>
+    <div id="rep"></div>
+  </div>
+
+  <div id="t3" class="hide">
+    <div class="card">
+      <p style="margin-top:0"><b>Trocar código de acesso</b></p>
+      <div class="row"><input id="np" type="password" inputmode="numeric" maxlength="8" placeholder="Novo código (4 a 8 números)" aria-label="Novo código"></div>
+      <button id="sp">Salvar código</button>
+      <p class="mut" id="pm"></p>
+      <hr style="border:0;border-top:1px solid var(--line);margin:14px 0">
+      <p class="mut">Como entrar: toque 5 vezes seguidas no título “Cobrinha”. Código inicial: 1234. Os dados ficam salvos só neste aparelho e navegador.</p>
+      <button class="ghost" id="clr" style="color:var(--bad)">Apagar todos os lançamentos</button>
+    </div>
+  </div>
+</section>
+
+</main>
+<script>
+(function(){
+var $=function(i){return document.getElementById(i)};
+var K="livrocaixa_v1",D={pin:"1234",items:[],rec:0};
+try{var r=localStorage.getItem(K);if(r)D=Object.assign(D,JSON.parse(r))}catch(e){}
+function save(){try{localStorage.setItem(K,JSON.stringify(D))}catch(e){}}
+function money(n){return n.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}
+function fdate(s){var p=s.split("-");return p[2]+"/"+p[1]+"/"+p[0]}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+
+/* ---------- JOGO ---------- */
+var cv=$("cv"),cx=cv.getContext("2d"),N=16,C=20,sn,dir,nd,food,pts,tm=null,over=false;
+$("rec").textContent=D.rec;
+function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v)}
+function reset(){sn=[{x:8,y:8},{x:7,y:8},{x:6,y:8}];dir={x:1,y:0};nd=dir;pts=0;over=false;$("pts").textContent=0;put();draw()}
+function put(){do{food={x:Math.random()*N|0,y:Math.random()*N|0}}while(sn.some(function(s){return s.x==food.x&&s.y==food.y}))}
+function draw(){cx.fillStyle=css("--cv");cx.fillRect(0,0,320,320);
+ cx.fillStyle=css("--fd");cx.beginPath();cx.arc(food.x*C+10,food.y*C+10,7,0,7);cx.fill();
+ cx.fillStyle=css("--sn");sn.forEach(function(s,i){cx.globalAlpha=i?0.85:1;cx.fillRect(s.x*C+1,s.y*C+1,C-2,C-2)});cx.globalAlpha=1;
+ if(over){cx.fillStyle=css("--fg");cx.font="bold 22px sans-serif";cx.textAlign="center";cx.fillText("Fim de jogo",160,160)}}
+function step(){dir=nd;var h={x:sn[0].x+dir.x,y:sn[0].y+dir.y};
+ if(h.x<0||h.y<0||h.x>=N||h.y>=N||sn.some(function(s){return s.x==h.x&&s.y==h.y})){over=true;clearInterval(tm);tm=null;
+  if(pts>D.rec){D.rec=pts;save();$("rec").textContent=pts}draw();return}
+ sn.unshift(h);if(h.x==food.x&&h.y==food.y){pts++;$("pts").textContent=pts;put()}else sn.pop();draw()}
+function play(){if(tm)return;if(over||!sn)reset();tm=setInterval(step,140)}
+function turn(d){var m={u:{x:0,y:-1},d:{x:0,y:1},l:{x:-1,y:0},r:{x:1,y:0}}[d];if(!m)return;
+ if(m.x==-dir.x&&m.y==-dir.y)return;nd=m;play()}
+$("pl").onclick=play;
+document.querySelectorAll("[data-d]").forEach(function(b){b.onclick=function(){turn(b.dataset.d)}});
+document.addEventListener("keydown",function(e){if(!$("game").classList.contains("hide")&&!$("dlg").open){
+ var m={ArrowUp:"u",ArrowDown:"d",ArrowLeft:"l",ArrowRight:"r"}[e.key];if(m){e.preventDefault();turn(m)}}});
+var tx,ty;cv.addEventListener("touchstart",function(e){tx=e.touches[0].clientX;ty=e.touches[0].clientY},{passive:true});
+cv.addEventListener("touchend",function(e){var dx=e.changedTouches[0].clientX-tx,dy=e.changedTouches[0].clientY-ty;
+ if(Math.max(Math.abs(dx),Math.abs(dy))<20)return;turn(Math.abs(dx)>Math.abs(dy)?(dx>0?"r":"l"):(dy>0?"d":"u"))});
+reset();
+
+/* ---------- ACESSO SECRETO ---------- */
+var taps=0,tt;
+$("title").addEventListener("click",function(){taps++;clearTimeout(tt);tt=setTimeout(function(){taps=0},2500);
+ if(taps>=5){taps=0;$("pin").value="";$("dlg").showModal();$("pin").focus()}});
+$("pc").onclick=function(){$("dlg").close()};
+function tryPin(){if($("pin").value===D.pin){$("dlg").close();clearInterval(tm);tm=null;$("game").classList.add("hide");$("book").classList.remove("hide");render()}
+ else{$("pin").value="";$("dlg").close()}}
+$("po").onclick=tryPin;$("pin").addEventListener("keydown",function(e){if(e.key==="Enter"){e.preventDefault();tryPin()}});
+$("exit").onclick=function(){$("book").classList.add("hide");$("game").classList.remove("hide");reset()};
+
+/* ---------- LIVRO CAIXA ---------- */
+document.querySelectorAll(".tabs button").forEach(function(b){b.onclick=function(){
+ document.querySelectorAll(".tabs button").forEach(function(x){x.classList.toggle("on",x==b)});
+ ["t1","t2","t3"].forEach(function(t){$(t).classList.toggle("hide",t!=b.dataset.t)});render()}});
+var today=new Date().toISOString().slice(0,10);$("dt").value=today;$("rm").value=today.slice(0,7);
+$("add").onclick=function(){var v=parseFloat($("vl").value),d=$("ds").value.trim(),e=$("err");
+ if(!d||!(v>0)||!$("dt").value){e.textContent="Preencha data, descrição e um valor maior que zero.";e.classList.remove("hide");return}
+ e.classList.add("hide");
+ D.items.push({id:Date.now(),tp:$("tp").value,dt:$("dt").value,ds:d,ct:$("ct").value.trim()||"Sem categoria",vl:Math.round(v*100)/100});
+ save();$("ds").value="";$("vl").value="";render()};
+$("list").onclick=function(e){var id=e.target.dataset.del;if(id&&confirm("Apagar este lançamento?")){D.items=D.items.filter(function(i){return i.id!=id});save();render()}};
+function tot(a){var i=0,o=0;a.forEach(function(x){x.tp=="in"?i+=x.vl:o+=x.vl});return{i:i,o:o,b:i-o}}
+function render(){
+ var s=D.items.slice().sort(function(a,b){return b.dt.localeCompare(a.dt)||b.id-a.id}),t=tot(s);
+ $("sIn").textContent=money(t.i);$("sOut").textContent=money(t.o);$("sBal").textContent=money(t.b);$("sBal").className=t.b<0?"out":"in";
+ $("list").innerHTML=s.length?s.map(function(x){return '<div class="it"><div><b>'+esc(x.ds)+'</b><small>'+fdate(x.dt)+' · '+esc(x.ct)+'</small></div><div class="'+x.tp+'">'+(x.tp=="out"?"− ":"+ ")+money(x.vl)+'</div><button data-del="'+x.id+'" aria-label="Apagar">✕</button></div>'}).join(""):'<p class="mut" style="margin:0">Nenhum lançamento ainda. Registre a primeira entrada ou saída acima.</p>';
+ var cs={};D.items.forEach(function(x){cs[x.ct]=1});$("cts").innerHTML=Object.keys(cs).map(function(c){return '<option value="'+esc(c)+'">'}).join("");
+ report()}
+
+function period(){var all=$("rp").value=="a",m=$("rm").value;
+ return{all:all,m:m,items:D.items.filter(function(x){return all||x.dt.slice(0,7)==m}).sort(function(a,b){return a.dt.localeCompare(b.dt)})}}
+function groups(a,tp){var g={};a.filter(function(x){return x.tp==tp}).forEach(function(x){g[x.ct]=(g[x.ct]||0)+x.vl});
+ return Object.keys(g).map(function(k){return[k,g[k]]}).sort(function(a,b){return b[1]-a[1]})}
+function label(p){if(p.all)return "Todo o período";var q=p.m.split("-");return q[1]+"/"+q[0]}
+function report(){var p=period(),t=tot(p.items),h='<div class="card"><b>Relatório — '+label(p)+'</b><div class="sum" style="margin-top:10px"><div><b class="in">'+money(t.i)+'</b><span>Entradas</span></div><div><b class="out">'+money(t.o)+'</b><span>Saídas</span></div><div><b class="'+(t.b<0?"out":"in")+'">'+money(t.b)+'</b><span>Saldo</span></div></div></div>';
+ [["in","Entradas por categoria",t.i,""],["out","Saídas por categoria",t.o,"o"]].forEach(function(c){var g=groups(p.items,c[0]);
+  h+='<div class="card"><b>'+c[1]+'</b>'+(g.length?g.map(function(x){var pc=c[2]?Math.round(x[1]/c[2]*100):0;return '<div style="margin-top:8px"><div class="it" style="border:0;padding:0"><span>'+esc(x[0])+' <span class="mut">'+pc+'%</span></span><span>'+money(x[1])+'</span></div><div class="bar '+c[3]+'" style="width:'+pc+'%"></div></div>'}).join(""):'<p class="mut" style="margin:6px 0 0">Sem registros neste período.</p>')+'</div>'});
+ h+='<div class="card"><b>Movimentações</b>'+(p.items.length?'<table class="tbl">'+p.items.map(function(x){return '<tr><td>'+fdate(x.dt)+' · '+esc(x.ds)+'</td><td class="'+x.tp+'">'+(x.tp=="out"?"− ":"+ ")+money(x.vl)+'</td></tr>'}).join("")+'</table>':'<p class="mut" style="margin:6px 0 0">Nada lançado neste período.</p>')+'</div>';
+ $("rep").innerHTML=h}
+$("rp").onchange=function(){$("rm").disabled=this.value=="a";report()};$("rm").onchange=report;
+$("print").onclick=function(){try{window.print()}catch(e){}};
+$("copy").onclick=function(){var p=period(),t=tot(p.items),L=["RELATÓRIO — "+label(p),"Entradas: "+money(t.i),"Saídas: "+money(t.o),"Saldo: "+money(t.b),"","Movimentações:"];
+ p.items.forEach(function(x){L.push(fdate(x.dt)+" | "+(x.tp=="in"?"Entrada":"Saída")+" | "+x.ds+" | "+x.ct+" | "+money(x.vl))});
+ var m=$("cmsg"),txt=L.join("\n");m.classList.remove("hide");
+ try{navigator.clipboard.writeText(txt).then(function(){m.textContent="Relatório copiado. Cole no WhatsApp ou em um documento."},function(){m.textContent="Não foi possível copiar. Use Imprimir / salvar PDF."})}
+ catch(e){m.textContent="Não foi possível copiar. Use Imprimir / salvar PDF."}};
+$("sp").onclick=function(){var v=$("np").value;if(!/^\d{4,8}$/.test(v)){$("pm").textContent="Use de 4 a 8 números.";return}
+ D.pin=v;save();$("np").value="";$("pm").textContent="Código alterado."};
+$("clr").onclick=function(){if(confirm("Apagar TODOS os lançamentos? Não dá para desfazer.")){D.items=[];save();render()}};
+})();
+if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})}
+</script>
+</body>
+</html>
